@@ -2,8 +2,8 @@ version: 2
 updates:
 - package-ecosystem: nuget
   directories:
-    - "src/"
-    - "src/Tests/"
+    - "src/PureQL.CSharp.Model.OpenAPI.Schema"
+    - "src/Tests/PureQL.CSharp.Model.OpenAPI.Schema.Tests"
   schedule:
     interval: daily
 - package-ecosystem: "github-actions"
