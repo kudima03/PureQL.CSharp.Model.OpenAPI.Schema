@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>PureQL.CSharp.Model.OpenAPI.Schema</PackageId>
+    <RootNamespace>PureQL.CSharp.Model.OpenAPI.Schema</RootNamespace>
+    <AssemblyName>PureQL.CSharp.Model.OpenAPI.Schema</AssemblyName>
+    <Authors>Dmitry Kurochkin</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/kudima03/PureQL.CSharp.Model.OpenAPI.Schema</PackageProjectUrl>
+  </PropertyGroup>
 </Project>
