@@ -1,0 +1,21 @@
+{
+  "name": "PureQL.CSharp.Model.OpenAPI.Schema",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0-noble",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "editorconfig.editorconfig"
+      ],
+      "settings": { "editor.formatOnSave": true }
+    }
+  },
+  "postCreateCommand": "cd src && dotnet restore && dotnet tool install -g dotnet-stryker",
+  "remoteUser": "vscode"
+}
