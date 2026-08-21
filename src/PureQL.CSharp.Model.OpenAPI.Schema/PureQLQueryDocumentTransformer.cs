@@ -46,12 +46,22 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
     {
         JsonObject specNode = JsonNode.Parse(_schema)!.AsObject();
 
+        // Every "#/definitions/..." pointer the specification actually uses. A node that
+        // owns one of these as a child is a grouping node, never a schema of its own.
+        HashSet<string> pointedAtPaths = new HashSet<string>(StringComparer.Ordinal);
+        CollectDefinitionPointers(specNode, pointedAtPaths);
+
         // Collect leaf schemas from the nested definitions tree.
         // Nested path "aggregates/date/average_date" → flat name "aggregates_date_average_date".
         Dictionary<string, JsonNode> defs = new Dictionary<string, JsonNode>(
             StringComparer.Ordinal
         );
-        CollectDefinitions(specNode["definitions"]?.AsObject() ?? [], string.Empty, defs);
+        CollectDefinitions(
+            specNode["definitions"]?.AsObject() ?? [],
+            string.Empty,
+            pointedAtPaths,
+            defs
+        );
 
         // Build root query schema node (strip "definitions" and "$schema" metadata).
         JsonObject rootNode = specNode.DeepClone().AsObject();
@@ -83,13 +93,19 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
 
         document.Components ??= new OpenApiComponents();
 
+        // A document that reached the transformer without any generated schema still has a
+        // null Schemas dictionary, which the assignment below would throw on.
+        document.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>(
+            StringComparer.Ordinal
+        );
+
         // Transfer all PureQL schemas into the real document, replacing the
         // auto-generated (incorrect) Query schema along the way.
         if (parseResult.Document?.Components?.Schemas is { } pureqlSchemas)
         {
             foreach ((string name, IOpenApiSchema schema) in pureqlSchemas)
             {
-                document.Components.Schemas![name] = schema;
+                document.Components.Schemas[name] = schema;
             }
         }
 
@@ -101,6 +117,7 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
     private static void CollectDefinitions(
         JsonObject node,
         string prefix,
+        HashSet<string> pointedAtPaths,
         Dictionary<string, JsonNode> result
     )
     {
@@ -112,14 +129,61 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
                 continue;
             }
 
-            if (child.Any(p => SchemaKeywords.Contains(p.Key)))
+            // Checked before the keyword heuristic below, because grouping node names share
+            // a namespace with JSON Schema keywords: "booleanOperations" groups "and", "or"
+            // and "not", and "not" alone would make the heuristic mistake the whole group
+            // for a schema, dropping its three members and leaving dangling $refs behind.
+            if (child.Any(p => pointedAtPaths.Contains($"{path}/{p.Key}")))
+            {
+                CollectDefinitions(child, path, pointedAtPaths, result);
+            }
+            else if (child.Any(p => SchemaKeywords.Contains(p.Key)))
             {
                 result[path] = child;
             }
             else
             {
-                CollectDefinitions(child, path, result);
+                CollectDefinitions(child, path, pointedAtPaths, result);
             }
+        }
+    }
+
+    // Recursively collects the targets of every "#/definitions/..." pointer in the document,
+    // as paths relative to "definitions" ("booleanOperations/and", "scalars/booleanScalar").
+    private static void CollectDefinitionPointers(JsonNode? node, HashSet<string> result)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                if (
+                    obj.TryGetPropertyValue("$ref", out JsonNode? refNode)
+                    && refNode is JsonValue refVal
+                    && refVal.TryGetValue(out string? refStr)
+                    && refStr.StartsWith(
+                        DefinitionsPointerPrefix,
+                        StringComparison.Ordinal
+                    )
+                )
+                {
+                    _ = result.Add(refStr[DefinitionsPointerPrefix.Length..]);
+                }
+
+                foreach ((string _, JsonNode? value) in obj)
+                {
+                    CollectDefinitionPointers(value, result);
+                }
+
+                break;
+
+            case JsonArray arr:
+                foreach (JsonNode? item in arr)
+                {
+                    CollectDefinitionPointers(item, result);
+                }
+
+                break;
+            default:
+                break;
         }
     }
 
