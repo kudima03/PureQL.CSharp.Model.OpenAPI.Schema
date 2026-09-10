@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-preview.0.2.3] — 2026-09-10
+
+- Maintenance release: dependency and build updates.
+
 ## [0.1.0-preview.0.2.2] — 2026-08-21
 
 ### Fixed
