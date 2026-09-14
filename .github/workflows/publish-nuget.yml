@@ -22,7 +22,7 @@ jobs:
       with:
         dotnet-version: 10.x.x
     - name: Package
-      run: dotnet pack --configuration Release -p:PackageVersion=${{ github.ref_name }} --output .
+      run: dotnet pack --configuration Release -p:Version=${{ github.ref_name }} --output .
     - name: Upload package artifact
       uses: actions/upload-artifact@v7
       with:
