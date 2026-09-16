@@ -16,6 +16,6 @@
       "settings": { "editor.formatOnSave": true }
     }
   },
-  "postCreateCommand": "cd src && dotnet restore && dotnet tool install -g dotnet-stryker",
+  "postCreateCommand": "cd src && dotnet restore && dotnet tool restore",
   "remoteUser": "vscode"
 }
