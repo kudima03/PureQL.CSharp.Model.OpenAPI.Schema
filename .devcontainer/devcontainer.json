@@ -1,6 +1,6 @@
 {
   "name": "PureQL.CSharp.Model.OpenAPI.Schema",
-  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0-noble",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:dev-10.0",
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {}
