@@ -62,7 +62,7 @@ jobs:
       with:
         recreate: true
         path: code-coverage-results.md
-    - name: Install dotnet-stryker globally
-      run: dotnet tool install -g dotnet-stryker
+    - name: Restore .NET tools
+      run: dotnet tool restore
     - name: Run mutation test
       run: dotnet stryker --mutation-level Complete --break-at ${{ env.MUTATION_THRESHOLD }}
