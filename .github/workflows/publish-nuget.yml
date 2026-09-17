@@ -22,7 +22,14 @@ jobs:
       with:
         dotnet-version: 10.x.x
     - name: Package
-      run: dotnet pack --configuration Release -p:Version=${{ github.ref_name }} --output .
+      env:
+        TAG: ${{ github.ref_name }}
+      run: |
+        dotnet pack --configuration Release \
+          -p:Version="$TAG" \
+          -p:AssemblyVersion="${TAG%%.*}.0.0.0" \
+          -p:FileVersion="${TAG%%-*}" \
+          --output .
     - name: Upload package artifact
       uses: actions/upload-artifact@v7
       with:
