@@ -18,6 +18,10 @@ end_of_line = lf
 [*.sln]
 indent_style = tab
 
+# Visual Studio XML Solution Files
+[*.slnx]
+indent_size = 2
+
 # Visual Studio XML Project Files
 [*.{csproj,vbproj,vcxproj.filters,proj,projitems,shproj}]
 indent_size = 2
