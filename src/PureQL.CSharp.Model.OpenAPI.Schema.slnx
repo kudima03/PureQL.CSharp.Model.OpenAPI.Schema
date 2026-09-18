@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/PureQL.CSharp.Model.OpenAPI.Schema.Tests/PureQL.CSharp.Model.OpenAPI.Schema.Tests.csproj" />
+  </Folder>
+  <Project Path="PureQL.CSharp.Model.OpenAPI.Schema/PureQL.CSharp.Model.OpenAPI.Schema.csproj" />
+</Solution>
