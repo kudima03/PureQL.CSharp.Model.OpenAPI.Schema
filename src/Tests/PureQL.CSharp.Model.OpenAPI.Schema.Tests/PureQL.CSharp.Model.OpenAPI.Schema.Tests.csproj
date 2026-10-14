@@ -18,6 +18,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The PureQL-Specification submodule, pinned to tag 0.1.0-preview.2.0.1. -->
+    <None
+      Include="..\PureQL-Specification\PureQL-Specification.json"
+      Link="Specification\PureQL-Specification.json"
+      CopyToOutputDirectory="PreserveNewest"
+    />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\PureQL.CSharp.Model.OpenAPI.Schema\PureQL.CSharp.Model.OpenAPI.Schema.csproj" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
@@ -15,8 +16,57 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
     }
 
     private const string QuerySchemaKey = "Query";
+    private const string DefsKey = "$defs";
+    private const string DefinitionsKey = "definitions";
+    private const string DefsPointerPrefix = "#/$defs/";
     private const string DefinitionsPointerPrefix = "#/definitions/";
     private const string ComponentsSchemasPointerPrefix = "#/components/schemas/";
+
+    // Root keywords that describe the specification document rather than the query.
+    // "$id" in particular would rebase every "#/components/schemas/..." pointer onto the
+    // specification's release URL, where no such component exists.
+    private static readonly string[] DocumentKeywords =
+    [
+        DefsKey,
+        DefinitionsKey,
+        "$schema",
+        "$id",
+        "version",
+    ];
+
+    // Keywords whose value is a subschema, a map of subschemas or an array of subschemas.
+    // "additionalProperties" is left out: Microsoft.OpenApi reads it as a boolean too.
+    private static readonly HashSet<string> SubschemaKeywords = new(
+        StringComparer.Ordinal
+    )
+    {
+        "items",
+        "contains",
+        "not",
+        "if",
+        "then",
+        "else",
+        "propertyNames",
+    };
+
+    private static readonly HashSet<string> SubschemaMapKeywords = new(
+        StringComparer.Ordinal
+    )
+    {
+        "properties",
+        "patternProperties",
+        "dependentSchemas",
+    };
+
+    private static readonly HashSet<string> SubschemaArrayKeywords = new(
+        StringComparer.Ordinal
+    )
+    {
+        "allOf",
+        "anyOf",
+        "oneOf",
+        "prefixItems",
+    };
 
     private static readonly HashSet<string> SchemaKeywords = new(StringComparer.Ordinal)
     {
@@ -46,37 +96,56 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
     {
         JsonObject specNode = JsonNode.Parse(_schema)!.AsObject();
 
-        // Every "#/definitions/..." pointer the specification actually uses. A node that
-        // owns one of these as a child is a grouping node, never a schema of its own.
-        HashSet<string> pointedAtPaths = new HashSet<string>(StringComparer.Ordinal);
-        CollectDefinitionPointers(specNode, pointedAtPaths);
-
-        // Collect leaf schemas from the nested definitions tree.
-        // Nested path "aggregates/date/average_date" → flat name "aggregates_date_average_date".
+        // Definitions keyed by their path below the definitions root.
+        // "$defs" (draft 2020-12) is flat: "add.decimal@row" stays "add.decimal@row".
+        // "definitions" (older specifications) is nested: "aggregates/date/average_date".
         Dictionary<string, JsonNode> defs = new Dictionary<string, JsonNode>(
             StringComparer.Ordinal
         );
-        CollectDefinitions(
-            specNode["definitions"]?.AsObject() ?? [],
-            string.Empty,
-            pointedAtPaths,
-            defs
-        );
 
-        // Build root query schema node (strip "definitions" and "$schema" metadata).
+        if (specNode[DefsKey] is JsonObject flatDefs)
+        {
+            foreach ((string name, JsonNode? defNode) in flatDefs)
+            {
+                if (defNode is not null)
+                {
+                    defs[name] = defNode;
+                }
+            }
+        }
+
+        if (specNode[DefinitionsKey] is JsonObject nestedDefs)
+        {
+            // Every "#/definitions/..." pointer the specification actually uses. A node that
+            // owns one of these as a child is a grouping node, never a schema of its own.
+            HashSet<string> pointedAtPaths = new HashSet<string>(StringComparer.Ordinal);
+            CollectDefinitionPointers(specNode, pointedAtPaths);
+
+            CollectDefinitions(nestedDefs, string.Empty, pointedAtPaths, defs);
+        }
+
+        // Build root query schema node (strip the specification document metadata).
         JsonObject rootNode = specNode.DeepClone().AsObject();
-        _ = rootNode.Remove("definitions");
-        _ = rootNode.Remove("$schema");
+        foreach (string keyword in DocumentKeywords)
+        {
+            _ = rootNode.Remove(keyword);
+        }
 
-        // Assemble schemas: root query + all flat definitions.
+        // Assemble schemas: root query + all definitions.
         JsonObject schemasNode = new JsonObject { [QuerySchemaKey] = rootNode };
         foreach ((string path, JsonNode defNode) in defs)
         {
-            schemasNode[ToFlatName(path)] = defNode.DeepClone();
+            schemasNode[ToComponentName(path)] = defNode.DeepClone();
         }
 
-        // Rewrite all "#/definitions/X/Y" → "#/components/schemas/X_Y" so that
-        // every $ref is a valid OpenAPI component pointer and resolvable by Scalar.
+        // Spell the constructs Microsoft.OpenApi cannot read back in an equivalent form.
+        foreach ((string _, JsonNode? schemaNode) in schemasNode)
+        {
+            NormalizeSchema(schemaNode);
+        }
+
+        // Rewrite all "#/$defs/X" and "#/definitions/X/Y" → "#/components/schemas/..." so
+        // that every $ref is a valid OpenAPI component pointer and resolvable by Scalar.
         RewriteRefs(schemasNode);
 
         // Wrap in a minimal OpenAPI 3.1 document so Microsoft.OpenApi can
@@ -187,8 +256,8 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
         }
     }
 
-    // Recursively rewrites "$ref" values from "#/definitions/X/Y/Z"
-    // to "#/components/schemas/X_Y_Z" in place.
+    // Recursively rewrites "$ref" values from "#/$defs/X" and "#/definitions/X/Y/Z"
+    // to "#/components/schemas/X" and "#/components/schemas/X_Y_Z" in place.
     private static void RewriteRefs(JsonNode? node)
     {
         switch (node)
@@ -198,14 +267,11 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
                     obj.TryGetPropertyValue("$ref", out JsonNode? refNode)
                     && refNode is JsonValue refVal
                     && refVal.TryGetValue(out string? refStr)
-                    && refStr.StartsWith(
-                        DefinitionsPointerPrefix,
-                        StringComparison.Ordinal
-                    )
+                    && TryGetDefinitionPath(refStr, out string? path)
                 )
                 {
                     obj["$ref"] =
-                        $"{ComponentsSchemasPointerPrefix}{ToFlatName(refStr[DefinitionsPointerPrefix.Length..])}";
+                        $"{ComponentsSchemasPointerPrefix}{ToComponentName(path)}";
                 }
                 foreach (string? key in obj.Select(p => p.Key).ToList())
                 {
@@ -226,8 +292,120 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
         }
     }
 
-    private static string ToFlatName(string path)
+    // Recursively rewrites the schema in place into an equivalent one that survives
+    // Microsoft.OpenApi:
+    // - a boolean subschema is read as null and then thrown on, so true → {} (accepts
+    //   anything) and false → { "not": {} } (accepts nothing). Only schema positions are
+    //   touched, never a value such as "const": true;
+    // - "const" is read as a string, turning "const": true into "const": "True", so a
+    //   const that is not a string becomes an "enum" with that one value, whose items
+    //   keep their JSON type.
+    private static void NormalizeSchema(JsonNode? node)
     {
-        return path.Replace('/', '_');
+        if (node is not JsonObject obj)
+        {
+            return;
+        }
+
+        foreach ((string key, JsonNode? value) in obj.ToList())
+        {
+            if (key == "const" && value?.GetValueKind() is not JsonValueKind.String)
+            {
+                ReplaceConstWithEnum(obj, value);
+            }
+            else if (SubschemaKeywords.Contains(key))
+            {
+                NormalizeSubschema(value, replacement => obj[key] = replacement);
+            }
+            else if (SubschemaMapKeywords.Contains(key) && value is JsonObject map)
+            {
+                foreach ((string name, JsonNode? subschema) in map.ToList())
+                {
+                    NormalizeSubschema(subschema, replacement => map[name] = replacement);
+                }
+            }
+            else if (SubschemaArrayKeywords.Contains(key) && value is JsonArray arr)
+            {
+                for (int i = 0; i < arr.Count; i++)
+                {
+                    int index = i;
+                    NormalizeSubschema(arr[i], replacement => arr[index] = replacement);
+                }
+            }
+            else if (key == "additionalProperties")
+            {
+                NormalizeSchema(value);
+            }
+        }
+    }
+
+    // An existing "enum" is kept and the const joins it through "allOf" instead: their
+    // intersection may be empty, and Microsoft.OpenApi drops an empty "enum".
+    private static void ReplaceConstWithEnum(JsonObject schema, JsonNode? constValue)
+    {
+        _ = schema.Remove("const");
+        JsonArray values = new JsonArray(constValue?.DeepClone());
+
+        if (!schema.ContainsKey("enum"))
+        {
+            schema["enum"] = values;
+            return;
+        }
+
+        if (schema["allOf"] is not JsonArray allOf)
+        {
+            allOf = [];
+            schema["allOf"] = allOf;
+        }
+
+        JsonNode constSchema = new JsonObject { ["enum"] = values };
+        allOf.Add(constSchema);
+    }
+
+    private static void NormalizeSubschema(JsonNode? node, Action<JsonObject> replace)
+    {
+        if (node is JsonValue value && value.TryGetValue(out bool accepts))
+        {
+            replace(accepts ? [] : new JsonObject { ["not"] = new JsonObject() });
+        }
+        else
+        {
+            NormalizeSchema(node);
+        }
+    }
+
+    private static bool TryGetDefinitionPath(string pointer, out string path)
+    {
+        foreach (string prefix in (string[])[DefsPointerPrefix, DefinitionsPointerPrefix])
+        {
+            if (pointer.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                path = pointer[prefix.Length..];
+                return true;
+            }
+        }
+
+        path = string.Empty;
+        return false;
+    }
+
+    // OpenAPI component names must match ^[a-zA-Z0-9.\-_]+$, so every other character is
+    // replaced: the "/" of a nested path and the "@" of a PureQL context
+    // ("add.decimal@row" → "add.decimal_row").
+    private static string ToComponentName(string path)
+    {
+        return string.Create(
+            path.Length,
+            path,
+            static (span, source) =>
+            {
+                for (int i = 0; i < source.Length; i++)
+                {
+                    char c = source[i];
+                    span[i] =
+                        char.IsAsciiLetterOrDigit(c) || c is '.' or '-' or '_' ? c : '_';
+                }
+            }
+        );
     }
 }

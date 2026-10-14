@@ -11,7 +11,14 @@ OpenAPI document transformer for **PureQL** — injects the full PureQL JSON Sch
 
 When ASP.NET Core generates an OpenAPI document for endpoints that accept PureQL `Query` objects, the generated schema reflects .NET's type-system view of the C# model — not the actual JSON structure that PureQL consumers need to send. `PureQL.CSharp.Model.OpenAPI.Schema` provides `PureQLQueryDocumentTransformer`, an `IOpenApiDocumentTransformer` that replaces the auto-generated schema with the canonical PureQL JSON Schema.
 
-The transformer parses the PureQL JSON Schema, flattens its nested `definitions` tree into a set of named components, rewrites all `$ref` pointers from `#/definitions/...` to `#/components/schemas/...`, and injects the resulting schemas into the document's `components.schemas` section.
+The transformer parses the PureQL JSON Schema, turns each of its definitions into a named component, rewrites all `$ref` pointers to `#/components/schemas/...`, and injects the resulting schemas into the document's `components.schemas` section. It reads the flat `$defs` of current specifications (0.1.0-preview.1.0.0 and later, tested against 0.1.0-preview.2.0.1) as well as the nested `definitions` tree of earlier ones:
+
+| Specification | Definition | Component |
+|---------------|------------|-----------|
+| `$defs` (current) | `#/$defs/add.decimal@row` | `#/components/schemas/add.decimal_row` |
+| `definitions` (earlier) | `#/definitions/aggregates/date/average_date` | `#/components/schemas/aggregates_date_average_date` |
+
+Characters that OpenAPI does not allow in component names (`@`, `/`) become `_`. Constructs that `Microsoft.OpenApi` cannot read back are rewritten into equivalent ones: boolean subschemas become `{}` (`true`) and `{ "not": {} }` (`false`), and a `const` that is not a string becomes a one-value `enum`. The specification's `$id`, `$schema` and `version` are dropped from the `Query` schema.
 
 ## API
 
