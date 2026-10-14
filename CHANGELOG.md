@@ -6,6 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-preview.0.3.0] — 2026-10-14
+
+### Added
+
+- `PureQLQueryDocumentTransformer` now supports PureQL specification
+  `0.1.0-preview.2.0.1`, including schemas that use `$defs` / `definitions`
+  and references into them.
+
+### Changed
+
+- Updated `Microsoft.AspNetCore.OpenApi` to 10.0.13.
+
 ## [0.1.0-preview.0.2.3] — 2026-09-10
 
 - Maintenance release: dependency and build updates.
