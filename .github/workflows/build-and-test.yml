@@ -6,8 +6,8 @@ on:
 
 env:
   COVERAGE_WARNING_THRESHOLD: 99
-  COVERAGE_THRESHOLD: 0
-  MUTATION_THRESHOLD: 0
+  COVERAGE_THRESHOLD: 40
+  MUTATION_THRESHOLD: 64
 
 jobs:
   build:
@@ -18,6 +18,8 @@ jobs:
         working-directory: ./src
     steps:
     - uses: actions/checkout@v7
+      with:
+        submodules: true
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
