@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-preview.0.4.0] — 2026-10-22
+
+### Changed
+
+- Updated `Microsoft.OpenApi` to 2.13.0.
+
 ## [0.1.0-preview.0.3.0] — 2026-10-14
 
 ### Added
