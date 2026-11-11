@@ -14,7 +14,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/kudima03/PureQL.CSharp.Model.OpenAPI.Schema</PackageProjectUrl>
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>0.1.0-preview.0.4.1</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>0.1.0-preview.0.5.0</PackageValidationBaselineVersion>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" />
