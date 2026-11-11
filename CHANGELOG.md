@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-preview.0.5.0] — 2026-11-11
+
+### Added
+
+- .NET 11 support (`net11.0` target framework).
+
+### Changed
+
+- Updated `Microsoft.AspNetCore.OpenApi` to 10.0.15.
+
 ## [0.1.0-preview.0.4.1] — 2026-10-31
 
 ### Changed
