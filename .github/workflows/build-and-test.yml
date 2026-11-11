@@ -23,7 +23,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.x.x
+        dotnet-version: 11.x.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -35,7 +35,7 @@ jobs:
     - name: Code style check by csharpier
       run: dotnet csharpier check .
     - name: Test
-      run: dotnet test --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+      run: dotnet test --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/*.generated.cs"
     - name: Combine Coverage Reports
       uses: danielpalme/ReportGenerator-GitHub-Action@5.5.12
       with:
