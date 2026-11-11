@@ -36,10 +36,9 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
 
     // Keywords whose value is a subschema, a map of subschemas or an array of subschemas.
     // "additionalProperties" is left out: Microsoft.OpenApi reads it as a boolean too.
-    private static readonly HashSet<string> SubschemaKeywords = new(
-        StringComparer.Ordinal
-    )
-    {
+    private static readonly HashSet<string> SubschemaKeywords =
+    [
+        with(StringComparer.Ordinal),
         "items",
         "contains",
         "not",
@@ -47,29 +46,28 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
         "then",
         "else",
         "propertyNames",
-    };
+    ];
 
-    private static readonly HashSet<string> SubschemaMapKeywords = new(
-        StringComparer.Ordinal
-    )
-    {
+    private static readonly HashSet<string> SubschemaMapKeywords =
+    [
+        with(StringComparer.Ordinal),
         "properties",
         "patternProperties",
         "dependentSchemas",
-    };
+    ];
 
-    private static readonly HashSet<string> SubschemaArrayKeywords = new(
-        StringComparer.Ordinal
-    )
-    {
+    private static readonly HashSet<string> SubschemaArrayKeywords =
+    [
+        with(StringComparer.Ordinal),
         "allOf",
         "anyOf",
         "oneOf",
         "prefixItems",
-    };
+    ];
 
-    private static readonly HashSet<string> SchemaKeywords = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> SchemaKeywords =
+    [
+        with(StringComparer.Ordinal),
         "type",
         "oneOf",
         "allOf",
@@ -86,7 +84,7 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
         "then",
         "else",
         "not",
-    };
+    ];
 
     public Task TransformAsync(
         OpenApiDocument document,
@@ -99,9 +97,7 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
         // Definitions keyed by their path below the definitions root.
         // "$defs" (draft 2020-12) is flat: "add.decimal@row" stays "add.decimal@row".
         // "definitions" (older specifications) is nested: "aggregates/date/average_date".
-        Dictionary<string, JsonNode> defs = new Dictionary<string, JsonNode>(
-            StringComparer.Ordinal
-        );
+        Dictionary<string, JsonNode> defs = [with(StringComparer.Ordinal)];
 
         if (specNode[DefsKey] is JsonObject flatDefs)
         {
@@ -118,7 +114,7 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
         {
             // Every "#/definitions/..." pointer the specification actually uses. A node that
             // owns one of these as a child is a grouping node, never a schema of its own.
-            HashSet<string> pointedAtPaths = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> pointedAtPaths = [with(StringComparer.Ordinal)];
             CollectDefinitionPointers(specNode, pointedAtPaths);
 
             CollectDefinitions(nestedDefs, string.Empty, pointedAtPaths, defs);
@@ -344,7 +340,7 @@ public sealed record PureQLQueryDocumentTransformer : IOpenApiDocumentTransforme
     private static void ReplaceConstWithEnum(JsonObject schema, JsonNode? constValue)
     {
         _ = schema.Remove("const");
-        JsonArray values = new JsonArray(constValue?.DeepClone());
+        JsonArray values = [with(constValue?.DeepClone())];
 
         if (!schema.ContainsKey("enum"))
         {
