@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The PureQL-Specification submodule, pinned to tag 0.1.0-preview.2.0.1. -->
+    <!-- The PureQL-Specification submodule, pinned to tag 0.1.0-preview.3.0.0. -->
     <None
       Include="..\PureQL-Specification\PureQL-Specification.json"
       Link="Specification\PureQL-Specification.json"
