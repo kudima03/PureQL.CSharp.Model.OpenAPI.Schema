@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.0-preview.1.0.0] — 2026-11-24
+
+### Changed
+
+- **Breaking:** `PureQLQueryDocumentTransformer` is tested against PureQL
+  specification `0.1.0-preview.3.0.0`, a breaking release of the
+  specification. The components it emits for that specification cover the
+  whole 3.0.0 language (string, regular expression, math, date part, time
+  zone, conversion, statistics and window operators, set operations, inline
+  rows and recursive subqueries) and keep its tightened constraints, so
+  queries that 0.1.0-preview.2.0.1 accepted, such as `dateAddDays` with
+  `left` / `right` or `"skip": 0`, no longer match the published schema.
+  The transformer's API is unchanged.
+
 ## [0.1.0-preview.0.5.0] — 2026-11-11
 
 ### Added

@@ -5,8 +5,9 @@ namespace PureQL.CSharp.Model.OpenAPI.Schema.Tests;
 
 public sealed record FlatDefinitionsTests
 {
-    // Shaped like PureQL 0.1.0-preview.2.0.x: flat "$defs" named "<operator>.<type>@<context>",
-    // "$id" and "version" on the root, boolean subschemas and boolean consts.
+    // Shaped like PureQL 0.1.0-preview.2.0.x and later: flat "$defs" named
+    // "<operator>.<type>@<context>", "$id" and "version" on the root, boolean subschemas and
+    // boolean consts.
     // lang=json,strict
     private const string Specification = """
         {
