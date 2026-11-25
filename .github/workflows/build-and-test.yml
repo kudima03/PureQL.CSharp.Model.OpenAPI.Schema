@@ -37,7 +37,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByFile="**/*.generated.cs"
     - name: Combine Coverage Reports
-      uses: danielpalme/ReportGenerator-GitHub-Action@5.6.0
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.6.1
       with:
         reports: "**/*.cobertura.xml"
         targetdir: "${{ github.workspace }}"
